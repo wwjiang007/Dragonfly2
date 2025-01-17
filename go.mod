@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	cloud.google.com/go/storage v1.49.0
-	d7y.io/api/v2 v2.0.177
+	d7y.io/api/v2 v2.1.8
 	github.com/MysteriousPotato/go-lockable v1.0.0
 	github.com/RichardKnop/machinery v1.10.8
 	github.com/Showmax/go-fqdn v1.0.0
@@ -25,7 +25,6 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-units v0.4.0
 	github.com/elastic/go-freelru v0.16.0
-	github.com/fsnotify/fsnotify v1.7.0
 	github.com/fsouza/fake-gcs-server v1.52.0
 	github.com/gaius-qi/ping v1.0.0
 	github.com/gammazero/deque v1.0.0
@@ -157,6 +156,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-echarts/go-echarts/v2 v2.2.4 // indirect
