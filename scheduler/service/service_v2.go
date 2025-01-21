@@ -126,29 +126,32 @@ func (v *V2) AnnouncePeer(stream schedulerv2.Scheduler_AnnouncePeerServer) error
 				return err
 			}
 		case *schedulerv2.AnnouncePeerRequest_ReschedulePeerRequest:
-			rescheduleRequest := announcePeerRequest.ReschedulePeerRequest
-
-			log.Infof("receive RescheduleRequest description: %s", rescheduleRequest.GetDescription())
-			if err := v.handleRescheduleRequest(ctx, req.GetPeerId(), rescheduleRequest.GetCandidateParents()); err != nil {
+			reschedulePeerRequest := announcePeerRequest.ReschedulePeerRequest
+			log.Infof("receive ReschedulePeerRequestescription: %s", reschedulePeerRequest.GetDescription())
+			if err := v.handleReschedulePeerRequest(ctx, req.GetPeerId(), reschedulePeerRequest.GetCandidateParents()); err != nil {
 				log.Error(err)
 				return err
 			}
 		case *schedulerv2.AnnouncePeerRequest_DownloadPeerFinishedRequest:
 			downloadPeerFinishedRequest := announcePeerRequest.DownloadPeerFinishedRequest
 			log.Infof("receive DownloadPeerFinishedRequest, content length: %d, piece count: %d", downloadPeerFinishedRequest.GetContentLength(), downloadPeerFinishedRequest.GetPieceCount())
-			// Notice: Handler uses context.Background() to avoid stream cancel by dfdameon.
-			if err := v.handleDownloadPeerFinishedRequest(context.Background(), req.GetPeerId()); err != nil {
+			if err := v.handleDownloadPeerFinishedRequest(ctx, req.GetPeerId()); err != nil {
 				log.Error(err)
 				return err
 			}
+
+			// If the task is succeeded, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePeerRequest_DownloadPeerBackToSourceFinishedRequest:
 			downloadPeerBackToSourceFinishedRequest := announcePeerRequest.DownloadPeerBackToSourceFinishedRequest
 			log.Infof("receive DownloadPeerBackToSourceFinishedRequest, content length: %d, piece count: %d", downloadPeerBackToSourceFinishedRequest.GetContentLength(), downloadPeerBackToSourceFinishedRequest.GetPieceCount())
-			// Notice: Handler uses context.Background() to avoid stream cancel by dfdameon.
-			if err := v.handleDownloadPeerBackToSourceFinishedRequest(context.Background(), req.GetPeerId(), downloadPeerBackToSourceFinishedRequest); err != nil {
+			if err := v.handleDownloadPeerBackToSourceFinishedRequest(ctx, req.GetPeerId(), downloadPeerBackToSourceFinishedRequest); err != nil {
 				log.Error(err)
 				return err
 			}
+
+			// If the task is back-to-source succeeded, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePeerRequest_DownloadPeerFailedRequest:
 			log.Infof("receive DownloadPeerFailedRequest, description: %s", announcePeerRequest.DownloadPeerFailedRequest.GetDescription())
 			// Notice: Handler uses context.Background() to avoid stream cancel by dfdameon.
@@ -156,13 +159,18 @@ func (v *V2) AnnouncePeer(stream schedulerv2.Scheduler_AnnouncePeerServer) error
 				log.Error(err)
 				return err
 			}
+
+			// If the task is failed, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePeerRequest_DownloadPeerBackToSourceFailedRequest:
 			log.Infof("receive DownloadPeerBackToSourceFailedRequest, description: %s", announcePeerRequest.DownloadPeerBackToSourceFailedRequest.GetDescription())
-			// Notice: Handler uses context.Background() to avoid stream cancel by dfdameon.
-			if err := v.handleDownloadPeerBackToSourceFailedRequest(context.Background(), req.GetPeerId()); err != nil {
+			if err := v.handleDownloadPeerBackToSourceFailedRequest(ctx, req.GetPeerId()); err != nil {
 				log.Error(err)
 				return err
 			}
+
+			// If the task is back-to-source failed, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePeerRequest_DownloadPieceFinishedRequest:
 			piece := announcePeerRequest.DownloadPieceFinishedRequest.Piece
 			log.Infof("receive DownloadPieceFinishedRequest, piece number: %d, piece length: %d, traffic type: %s, cost: %s, parent id: %s", piece.GetNumber(), piece.GetLength(), piece.GetTrafficType(), piece.GetCost().AsDuration().String(), piece.GetParentId())
@@ -1157,8 +1165,8 @@ func (v *V2) handleDownloadPeerBackToSourceStartedRequest(ctx context.Context, p
 	return nil
 }
 
-// handleRescheduleRequest handles RescheduleRequest of AnnouncePeerRequest.
-func (v *V2) handleRescheduleRequest(_ context.Context, peerID string, candidateParents []*commonv2.Peer) error {
+// handleReschedulePeerRequest handles ReschedulePeerRequest of AnnouncePeerRequest.
+func (v *V2) handleReschedulePeerRequest(_ context.Context, peerID string, candidateParents []*commonv2.Peer) error {
 	peer, loaded := v.resource.PeerManager().Load(peerID)
 	if !loaded {
 		return status.Errorf(codes.NotFound, "peer %s not found", peerID)
@@ -1619,7 +1627,6 @@ func (v *V2) AnnouncePersistentCachePeer(stream schedulerv2.Scheduler_AnnouncePe
 			}
 		case *schedulerv2.AnnouncePersistentCachePeerRequest_ReschedulePersistentCachePeerRequest:
 			reschedulePersistentCachePeerRequest := announcePersistentCachePeerRequest.ReschedulePersistentCachePeerRequest
-
 			log.Info("receive ReschedulePersistentCachePeerRequest")
 			if err := v.handleReschedulePersistentCachePeerRequest(ctx, stream, req.GetTaskId(), req.GetPeerId(), reschedulePersistentCachePeerRequest); err != nil {
 				log.Error(err)
@@ -1631,12 +1638,18 @@ func (v *V2) AnnouncePersistentCachePeer(stream schedulerv2.Scheduler_AnnouncePe
 				log.Error(err)
 				return err
 			}
+
+			// If the task is succeeded, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePersistentCachePeerRequest_DownloadPersistentCachePeerFailedRequest:
 			log.Info("receive DownloadPersistentCachePeerFailedRequest")
 			if err := v.handleDownloadPersistentCachePeerFailedRequest(ctx, req.GetPeerId()); err != nil {
 				log.Error(err)
 				return err
 			}
+
+			// If the task is failed, return nil directly and close the stream.
+			return nil
 		case *schedulerv2.AnnouncePersistentCachePeerRequest_DownloadPieceFinishedRequest:
 			downloadPieceFinishedRequest := announcePersistentCachePeerRequest.DownloadPieceFinishedRequest
 
@@ -2335,7 +2348,7 @@ func (v *V2) UploadPersistentCacheTaskStarted(ctx context.Context, req *schedule
 	task, loaded := v.persistentCacheResource.TaskManager().Load(ctx, req.GetTaskId())
 	if loaded && !task.FSM.Can(persistentcache.TaskEventUpload) {
 		log.Errorf("persistent cache task %s is %s cannot upload", task.ID, task.FSM.Current())
-		return status.Errorf(codes.FailedPrecondition, "persistent cache task %s is %s cannot upload", task.ID, task.FSM.Current())
+		return status.Errorf(codes.AlreadyExists, "persistent cache task %s is %s cannot upload", task.ID, task.FSM.Current())
 	}
 
 	task = persistentcache.NewTask(req.GetTaskId(), req.GetTag(), req.GetApplication(), persistentcache.TaskStatePending, req.GetPersistentReplicaCount(),
